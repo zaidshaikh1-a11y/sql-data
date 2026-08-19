@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQL Query Library — Live Collaborative SQL Platform</title>
+  <meta name="description" content="Live collaborative SQL query library with real-time sync, schema detection, auto-formatting, and team management.">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Third-party Libraries (CDN) -->
+  <!-- SheetJS for Excel export/import -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Supabase JS for Real-time Cloud Sync -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">SQL Query Library</h1>
+          <div class="brand-subtitle">
+            <span id="queryCountText">0 queries</span>
+            <span>·</span>
+            <span class="live-badge" id="liveSyncStatus">
+              <span class="live-dot"></span>
+              <span id="syncStatusLabel">Live Synced</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Theme Toggle -->
+        <button class="btn btn-icon" id="themeToggleBtn" title="Toggle Light/Dark Theme">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+
+        <!-- Cloud Sync Config -->
+        <button class="btn" id="cloudConfigBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+          </svg>
+          Cloud Sync
+        </button>
+
+        <!-- Export/Import -->
+        <button class="btn" id="exportBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Export / Import
+        </button>
+
+        <!-- Add Query Button -->
+        <button class="btn btn-primary" id="addQueryBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add Query
+        </button>
+      </div>
+    </header>
+
+    <!-- Team Teammates Bar -->
+    <div class="toolbar-card">
+      <div class="team-bar">
+        <span class="team-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Team Teammates:
+        </span>
+        <div id="teamChipsContainer" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <!-- Dynamically filled team chips -->
+        </div>
+        <div style="margin-left: auto; display: flex; gap: 6px;">
+          <input type="text" id="newTeammateInput" class="form-control" placeholder="Add teammate name" style="width: 160px; padding: 5px 10px; font-size: 12.5px;">
+          <button class="btn btn-sm" id="addTeammateBtn">Add</button>
+        </div>
+      </div>
+
+      <!-- Search and Filter Grid -->
+      <div class="search-grid">
+        <div class="input-group">
+          <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="searchInput" class="form-control form-control-icon" placeholder="Search title, SQL code, tables, columns, tags...">
+        </div>
+
+        <select id="authorFilterSelect" class="form-control" style="width: 170px;">
+          <option value="">All authors</option>
+        </select>
+
+        <select id="tagFilterSelect" class="form-control" style="width: 160px;">
+          <option value="">All tags</option>
+        </select>
+
+        <button class="btn" id="clearFiltersBtn">Reset Filters</button>
+      </div>
+    </div>
+
+    <!-- Main Query Cards Grid -->
+    <main id="queryListContainer" class="query-grid">
+      <!-- Query items will be dynamically injected here -->
+    </main>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="toolbar-card hidden" style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px;">
+        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+      </svg>
+      <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">No Queries Found</h3>
+      <p style="font-size: 13.5px;" id="emptyStateText">Add your first SQL query to share with your team.</p>
+    </div>
+  </div>
+
+  <!-- Side Panel: Add / Edit Query -->
+  <aside id="queryPanel" class="side-panel hidden">
+    <div class="modal-header">
+      <h2 class="modal-title" id="panelTitle">Add Query</h2>
+      <button class="close-btn" id="closePanelBtn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+
+    <form id="queryForm" style="display: flex; flex-direction: column; gap: 14px;">
+      <div>
+        <label style="font-size: 12.5px; font-weight: 600; color: var(--text-muted);">Author</label>
+        <select id="formAuthor" class="form-control" style="margin-top: 5px;" required>
+          <option value="">Select teammate</option>
+        </select>
+      </div>
+
+      <div style="background: var(--surface-panel); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px;">
+        <label style="font-size: 12.5px; font-weight: 600; color: var(--text-muted);">Title</label>
+        <input type="text" id="formTitle" class="form-control" style="margin-top: 5px;" placeholder="e.g. Monthly active user retention" required>
+      </div>
+
+      <div style="background: var(--surface-panel); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12.5px; font-weight: 600; color: var(--text-muted);">SQL Code</label>
+          <button type="button" class="btn btn-sm" id="formatSqlBtn">Format SQL</button>
+        </div>
+        <textarea id="formSql" class="form-control" rows="8" style="margin-top: 6px; font-family: var(--font-mono); font-size: 12.8px;" placeholder="SELECT * FROM users WHERE active = true;" required></textarea>
+      </div>
+
+      <!-- Auto-detected Schema Preview -->
+      <div style="background: var(--surface-panel); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <label style="font-size: 12.5px; font-weight: 600; color: var(--text-muted);">Tables & Columns Detected</label>
+          <button type="button" class="btn btn-sm" id="rescanSchemaBtn">Re-scan</button>
+        </div>
+        <div id="schemaDetectorList" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Auto-detected tables list -->
+        </div>
+      </div>
+
+      <div style="background: var(--surface-panel); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px;">
+        <label style="font-size: 12.5px; font-weight: 600; color: var(--text-muted);">Description</label>
+        <textarea id="formDescription" class="form-control" rows="3" style="margin-top: 5px;" placeholder="What this query does, parameters, or schedule..."></textarea>
+      </div>
+
+      <div>
+        <label style="font-size: 12.5px; font-weight: 600; color: var(--text-muted);">Tags (comma separated)</label>
+        <input type="text" id="formTags" class="form-control" style="margin-top: 5px;" placeholder="analytics, weekly, retention">
+      </div>
+
+      <div>
+        <label style="font-size: 12.5px; font-weight: 600; color: var(--text-muted);">Tool / Execution Notes</label>
+        <textarea id="formNotes" class="form-control" rows="2" style="margin-top: 5px;" placeholder="e.g. Runs on Snowflake / BigQuery console..."></textarea>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 8px;">
+        <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Save Query</button>
+        <button type="button" class="btn" id="cancelFormBtn">Cancel</button>
+      </div>
+    </form>
+  </aside>
+
+  <!-- Modal: Cloud Sync Settings -->
+  <div id="cloudModal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Cloud Sync & Realtime Settings</h3>
+        <button class="close-btn" id="closeCloudModalBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 16px;">
+        Enable live team synchronization across computers by connecting a free <strong>Supabase</strong> or custom API endpoint.
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <label style="font-size: 12.5px; font-weight: 600; color: var(--text-muted);">Supabase Project URL</label>
+          <input type="text" id="supabaseUrlInput" class="form-control" placeholder="https://xyz.supabase.co" style="margin-top: 4px;">
+        </div>
+        <div>
+          <label style="font-size: 12.5px; font-weight: 600; color: var(--text-muted);">Supabase Anon Key</label>
+          <input type="password" id="supabaseKeyInput" class="form-control" placeholder="eyJhbGciOiJIUzI1Ni..." style="margin-top: 4px;">
+        </div>
+        <div style="background: var(--surface-panel); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; font-size: 12.5px; color: var(--text-secondary);">
+          💡 <strong>Tip:</strong> Without Cloud Sync, queries are automatically synced across browser tabs on your device and saved in local browser storage.
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end;">
+        <button class="btn" id="clearCloudSettingsBtn" style="color: var(--danger-text);">Disconnect Cloud</button>
+        <button class="btn btn-primary" id="saveCloudSettingsBtn">Save & Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Export & Import -->
+  <div id="exportModal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Export & Import Library</h3>
+        <button class="close-btn" id="closeExportModalBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="background: var(--surface-panel); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px;">
+          <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Export Options</h4>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn" id="exportExcelBtn" style="flex: 1; justify-content: center;">Export Excel (.xlsx)</button>
+            <button class="btn" id="exportJsonBtn" style="flex: 1; justify-content: center;">Export JSON (.json)</button>
+          </div>
+        </div>
+
+        <div style="background: var(--surface-panel); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px;">
+          <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Import Queries</h4>
+          <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 10px;">Select a JSON or Excel file containing query library data.</p>
+          <input type="file" id="importFileInput" accept=".json, .xlsx, .xls, .sql" class="form-control">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Main Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
